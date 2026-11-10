@@ -1,0 +1,32 @@
+// Merge this snippet into your existing prisma/schema.prisma.
+// Do NOT add a second User model. Add only the relation field shown below.
+//
+// model User {
+//   ...existing fields...
+//   notifications Notification[]
+// }
+
+enum NotificationType {
+  SYSTEM
+  COMMENT
+  MENTION
+  UPDATE
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType @default(SYSTEM)
+  title     String
+  body      String           @db.Text
+  url       String?
+
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+  deletedAt DateTime?
+
+  @@index([userId, deletedAt, createdAt])
+  @@index([userId, deletedAt, readAt])
+}
