@@ -1,0 +1,25 @@
+2. 가장 간단한 방법: requirements.txt에 지정
+프로젝트별로 설정하고 싶다면 이 방법을 추천해.
+my-project/
+├── requirements.txt
+├── main.py
+└── ...
+
+
+requirements.txt:
+--index-url https://gitea.local/api/packages/internal/pypi/simple
+
+fastapi==0.115.12
+uvicorn==0.34.0
+pydantic==2.11.0
+
+
+이제 평소처럼:
+pip install -r requirements.txt
+
+
+하면 Gitea에서 의존성을 설치해. --index-url은 requirements 파일에서 공식적으로 지원하는 옵션이야. 
+pip documentation v27.0.dev0
+
+
+단, 이 설정은 pip install fastapi 같은 직접 실행에는 적용되지 않아.
