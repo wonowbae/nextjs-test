@@ -3,7 +3,7 @@
 이렇게 하면 개발자들은 아무것도 수정할 필요가 없어. Prisma 버전이 늘어날 때도 Nginx 디렉터리에 직접 파일을 넣지 않고 Gitea에 업로드하면 돼.
 1. 최종적으로 만들 구조
 Windows 11 개발 PC
-
+```
 npm ci / npx prisma generate
 
 PRISMA_ENGINES_MIRROR=http://mirror.internal/prisma
@@ -21,7 +21,7 @@ Gitea Package Registry
 prisma-engines-windows
 
 버전별 DLL / EXE / SHA-256 파일 관리
-
+```
 
 핵심은 Gitea가 Prisma Mirror 프로토콜을 직접 지원하는 건 아니라는 점이야. 그래서 Nginx는 계속 필요하지만, 이제 정적 파일 저장소가 아니라 URL을 변환하는 프록시 역할만 담당하게 돼.
 2. Gitea에 Prisma 파일을 저장하는 방법
@@ -48,7 +48,7 @@ Package: prisma-engines-windows
 Version: {commit}
 File:    query_engine.dll.node.gz
 
-
+```
 Gitea에서는 다음과 같은 형태로 관리돼.
 infrastructure
 └── prisma-engines-windows
@@ -60,13 +60,14 @@ infrastructure
     │   └── ...
     └── commit-B
         └── ...
-
+```
 
 여기서 commit은 Git 저장소의 최신 커밋이 아니라 Prisma 엔진의 commit hash야. Prisma npm 패키지 버전과 별개로 정확하게 맞춰야 해.
 실제 업로드 명령
 우선 Gitea에 infrastructure라는 조직이 있다고 가정하자.
 
 Windows PowerShell에서 다음 명령을 실행하면 돼.
+```
 $GITEA = "http://gitea.internal:3000"
 $OWNER = "infrastructure"
 $COMMIT = "여기에_실제_엔진_커밋"
@@ -79,7 +80,7 @@ curl.exe --fail-with-body `
   --upload-file $FILE `
   "$GITEA/api/packages/$OWNER/generic/prisma-engines-windows/$COMMIT/$FILE"
 
-
+```
 curl.exe가 비밀번호를 요청하면 Gitea의 Package Write 권한이 있는 액세스 토큰을 입력하면 돼.
 
 성공하면 HTTP 201 Created가 반환돼.
@@ -107,6 +108,7 @@ Nginx 설정은 다음과 같이 하면 돼.
 nginx.conf — 기존 server 블록 내부에 추가
 
 # Prisma Windows Engine Mirror
+```nginx
 location ~ ^/prisma/all_commits/(?<commit>[a-fA-F0-9]{40})/windows/(?<filename>[A-Za-z0-9._+-]+)$ {
     limit_except GET {
         deny all;
@@ -121,7 +123,7 @@ location ~ ^/prisma/all_commits/(?<commit>[a-fA-F0-9]{40})/windows/(?<filename>[
     proxy_connect_timeout 5s;
     proxy_read_timeout 60s;
 }
-
+```
 
 
 이 예시는 Nginx와 Gitea가 동일 서버에서 실행되고 Gitea가 127.0.0.1:3000에 접근 가능하다는 가정이야. 다른 서버라면 실제 Gitea 주소로 변경하면 돼.
