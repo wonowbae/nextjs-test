@@ -1,0 +1,14 @@
+stage('Deploy') {
+    steps {
+        powershell '''
+            $release = Join-Path $env:RELEASES_DIR $env:BUILD_NUMBER
+
+            & "$env:WORKSPACE\\scripts\\deploy-next.ps1" `
+                -ReleasePath $release `
+                -ServiceName "frontend" `
+                -XmlPath "C:\\services\\frontend\\service\\frontend.xml" `
+                -HealthUrl "http://127.0.0.1:3000/api/health" `
+                -Port 3000
+        '''
+    }
+}
