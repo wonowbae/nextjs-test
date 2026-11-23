@@ -1,0 +1,13 @@
+// Next.js
+powershell '''
+    & "$env:WORKSPACE\\scripts\\deploy-service.ps1" `
+        -Service "frontend" `
+        -ReleasePath "C:\\services\\frontend\\releases\\$env:BUILD_NUMBER"
+'''
+
+// FastAPI
+powershell '''
+    & "$env:WORKSPACE\\scripts\\deploy-service.ps1" `
+        -Service "backend" `
+        -ReleasePath "C:\\services\\backend\\releases\\$env:BUILD_NUMBER"
+'''
