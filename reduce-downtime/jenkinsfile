@@ -1,0 +1,98 @@
+4. Jenkinsfile 작성
+이제 본론이야.
+
+저장소에 다음 파일 두 개를 두자.
+repository/
+├── Jenkinsfile
+├── next.config.ts
+├── package.json
+└── scripts/
+    └── deploy-next.ps1
+
+
+Jenkinsfile은 빌드와 릴리스 준비를 담당하고, deploy-next.ps1은 서비스 중지·교체·시작·검증을 담당하게 분리할게.
+```Jenkinsfile
+
+pipeline {
+    agent { label 'windows' }
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    environment {
+        RELEASES_DIR = 'C:\\services\\frontend\\releases'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm ci'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'npm run build'
+            }
+        }
+
+        stage('Prepare Release') {
+            steps {
+                powershell '''
+                    $ErrorActionPreference = "Stop"
+
+                    $source = Join-Path $env:WORKSPACE ".next\\standalone"
+                    $static = Join-Path $env:WORKSPACE ".next\\static"
+                    $public = Join-Path $env:WORKSPACE "public"
+                    $release = Join-Path $env:RELEASES_DIR $env:BUILD_NUMBER
+
+                    if (!(Test-Path "$source\\server.js")) {
+                        throw "Standalone build not found"
+                    }
+
+                    if (Test-Path $release) {
+                        throw "Release already exists: $release"
+                    }
+
+                    New-Item -ItemType Directory -Path $release -Force | Out-Null
+
+                    # Copy standalone output
+                    Copy-Item "$source\\*" $release -Recurse -Force
+
+                    # Copy static assets
+                    New-Item -ItemType Directory -Path "$release\\.next\\static" -Force | Out-Null
+                    Copy-Item "$static\\*" "$release\\.next\\static" -Recurse -Force
+
+                    # Copy public assets, if present
+                    if (Test-Path $public) {
+                        Copy-Item $public "$release\\public" -Recurse
+                    }
+
+                    if (!(Test-Path "$release\\server.js")) {
+                        throw "Invalid release"
+                    }
+
+                    Write-Host "Release prepared: $release"
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                powershell '''
+                    & "$env:WORKSPACE\\scripts\\deploy-next.ps1" `
+                        -ReleasePath "$env:RELEASES_DIR\\$env:BUILD_NUMBER"
+                '''
+            }
+        }
+    }
+}
+```
